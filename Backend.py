@@ -2,14 +2,16 @@ import logging
 import os
 import shutil
 from os.path import expanduser
-from pathlib import Path
 
 import gphoto2
 import shortuuid
-from PIL import Image
 from flask import Flask, send_from_directory
 from gphoto2 import gp_camera_exit, gp_context_new, gp_camera_init, \
     gp_camera_new, gp_camera_get_summary, GPhoto2Error
+
+from FileNumber import get_and_increase_number
+from Thumbnail import create_thumb
+from Utils import convert_bytes
 
 THUMBNAIL_PREFIXX = "thumb/"
 
@@ -43,40 +45,6 @@ def get_thumb(photo_id):
     else:
         logging.debug("Thumb already exists " + thumbnail_path)
     return send_from_directory(path + THUMBNAIL_PREFIXX, "t" + filename)
-
-
-def create_thumb(original_file, filename_thumb):
-    base_width = 400
-    logging.debug("Create thumbnail with " + str(base_width) + "px width")
-    img = Image.open(original_file)
-    width_percentage = (base_width / float(img.size[0]))
-    hsize = int((float(img.size[1]) * float(width_percentage)))
-    img = img.resize((base_width, hsize), Image.ANTIALIAS)
-    logging.debug("Saving file to " + filename_thumb)
-    img.save(filename_thumb)
-    logging.info("Thumbnail created " + filename_thumb)
-
-
-def convert_bytes(num):
-    """
-    this function will convert bytes to MB.... GB... etc
-    """
-    for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
-        if num < 1024.0:
-            return "%3.2f %s" % (num, x)
-        num /= 1024.0
-
-
-def get_and_increase_number() -> str:
-    file_path = Path(expanduser("~") + "/booth/" + 'filename.txt')
-    content = file_path.read_text()
-    if not content:
-        logging.debug("Number file " + str(file_path) + " does not exist")
-        content = '0'
-    number = int(content) + 1
-    logging.info("New number is " + str(number))
-    file_path.write_text('%d' % number)
-    return str(number)
 
 
 @app.route('/info')
